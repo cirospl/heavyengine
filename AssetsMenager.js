@@ -2,28 +2,25 @@ import * as THREE from 'three';
 
 export class AssetManager {
     constructor() {
-        this.cacheName = 'v1-highres-storage';
-        this.loader = new THREE.TextureLoader();
+        this.cacheName = 'heavy-engine-cache-v1';
     }
 
-    async getAsset(url) {
+    async load(url, type = 'texture') {
         const cache = await caches.open(this.cacheName);
-        const cachedResponse = await cache.match(url);
-
-        if (cachedResponse) {
-            const blob = await cachedResponse.blob();
-            return this._loadTexture(URL.createObjectURL(blob));
+        const match = await cache.match(url);
+        if (match) {
+            const blob = await match.blob();
+            return this._process(URL.createObjectURL(blob), type);
         }
-
-        const response = await fetch(url);
-        await cache.put(url, response.clone());
-        const blob = await response.blob();
-        return this._loadTexture(URL.createObjectURL(blob));
+        const res = await fetch(url);
+        await cache.put(url, res.clone());
+        const blob = await res.blob();
+        return this._process(URL.createObjectURL(blob), type);
     }
 
-    _loadTexture(url) {
-        return new Promise((resolve) => {
-            this.loader.load(url, (t) => resolve(t));
+    _process(url, type) {
+        return new Promise((res) => {
+            new THREE.TextureLoader().load(url, (t) => res(t));
         });
     }
-}
+    }
