@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Easy Heavyweight Engine</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #111; color: white; font-family: sans-serif; }
+        canvas { display: block; }
+        #info { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 10px; }
+    </style>
+</head>
+<body>
+    <div id="info">Sistema pronto. Asset pesanti in gestione...</div>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // --- IL TUO MOTORE ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Aggiungiamo un cubo di test per vedere se funziona
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshStandardMaterial({ color: 0x00ff88 });
+        const cube = new THREE.Mesh(geometry, material);
+        scene.add(cube);
+
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(5, 5, 5);
+        scene.add(light, new THREE.AmbientLight(0x404040));
+
+        camera.position.z = 5;
+
+        // --- GESTORE ASSET (Versione Semplice) ---
+        async function loadLargeTexture(url) {
+            const cache = await caches.open('game-cache');
+            const match = await cache.match(url);
+            
+            if (match) {
+                console.log("Recuperato da cache locale!");
+                const blob = await match.blob();
+                const tex = new THREE.TextureLoader().load(URL.createObjectURL(blob));
+                cube.material.map = tex;
+                cube.material.needsUpdate = true;
+            } else {
+                console.log("Download in corso...");
+                const res = await fetch(url);
+                cache.put(url, res.clone());
+                const blob = await res.blob();
+                const tex = new THREE.TextureLoader().load(URL.createObjectURL(blob));
+                cube.material.map = tex;
+                cube.material.needsUpdate = true;
+            }
+        }
+
+        // Loop di rendering
+        function animate() {
+            requestAnimationFrame(animate);
+            cube.rotation.x += 0.01;
+            cube.rotation.y += 0.01;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Esempio: carica una texture di test (puoi mettere un link a una tua immagine qui)
+        // loadLargeTexture('https://threejs.org/examples/textures/crate.gif');
+
+    </script>
+</body>
+</html>
